@@ -1,0 +1,96 @@
+version: '3'
+
+networks:
+  project_network:
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9000:9000"
+
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    depends_on:
+#      - prometheus
+
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+
+#  backup:
+#    build: ./Backup
+#    environment:
+#      - POSTGRES_DB=${POSTGRES_DB}
+#      - POSTGRES_USER=${POSTGRES_USER}
+#      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#      - PORT=${PORT}
+#      - BACKUP_DIR=/src/backups
+#      - HOURS_INTERVAL=${HOURS_INTERVAL}
+#      - MAX_BACKUPS=${MAX_BACKUPS}
+#    volumes:
+#      - ./Backup:/src
+#      - ./Backup/backups:/src/backups
+#    depends_on:
+#      - postgres
+#  performance_test:
+#    build: ./EfficiencyTest
+#    environment:
+#      - POSTGRES_DB=${POSTGRES_DB}
+#      - POSTGRES_USER=${POSTGRES_USER}
+#      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#      - PORT=${PORT}
+#      - ATTEMPTS=${ATTEMPTS}
+#    volumes:
+#      - ./EfficiencyTest:/src
+#      - ./EfficiencyTest/results:/src/results
+#    depends_on:
+#      - postgres
+#  data_filler:
+#    build: ./TestDataFillers
+#    environment:
+#      - POSTGRES_DB=${POSTGRES_DB}
+#      - POSTGRES_USER=${POSTGRES_USER}
+#      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#      - PORT=${PORT}
+#      - NUM_MAIN_RECORDS=${NUM_MAIN_RECORDS}
+#      - NUM_TANK_RECORDS=${NUM_TANK_RECORDS}
+#      - NUM_OTHER_RECORDS=${NUM_OTHER_RECORDS}
+#    volumes:
+#      - ./TestDataFillers:/src
+#    depends_on:
+#      - postgres
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - LAST_MIGRATION_VERSION=${LAST_MIGRATION_VERSION}
+      - PORT=${PORT}
+    ports:
+      - "${PORT}:5432"
+    volumes:
+      - .env:/config/env
+      - ./migrations:/migrations/
+      - ./initial:/docker-entrypoint-initdb.d/
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
